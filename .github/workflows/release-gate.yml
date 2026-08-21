@@ -1,0 +1,36 @@
+name: TDS GA7 Release Gate
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: TDS identity: 23f2004400@ds.study.iitm.ac.in
+        run: echo "identity step"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Start server
+        run: node server.js &
+
+      - name: Wait for server
+        run: sleep 2
+
+      - name: Test release-gate endpoint
+        run: |
+          curl -f -X POST http://localhost:3000/release-gate \
+            -H "Content-Type: application/json" \
+            -d '{"target":"preview","event":"pull_request","ref":"refs/heads/feature","workflow":{"trigger":"pull_request","permissions":{"contents":"read","packages":"write","id-token":"none"},"testsPassed":true,"matrixComplete":true,"failFast":false,"actions":[{"owner":"actions","name":"checkout","ref":"v4"}]},"image":{"multiStage":true,"runsAsRoot":false,"secretMode":"none","criticalVulnerabilities":0,"digestPinned":true}}' \
+            | grep '"decision":"promote"'
